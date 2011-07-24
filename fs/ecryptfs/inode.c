@@ -144,46 +144,6 @@ static int ecryptfs_interpose(struct dentry *lower_dentry,
 }
 
 /**
- * ecryptfs_create_underlying_file
- * @lower_dir_inode: inode of the parent in the lower fs of the new file
- * @dentry: New file's dentry
- * @mode: The mode of the new file
- * @nd: nameidata of ecryptfs' parent's dentry & vfsmount
- *
- * Creates the file in the lower file system.
- *
- * Returns zero on success; non-zero on error condition
- */
-static int
-ecryptfs_create_underlying_file(struct inode *lower_dir_inode,
-				struct dentry *dentry, int mode,
-				struct nameidata *nd)
-{
-	struct dentry *lower_dentry = ecryptfs_dentry_to_lower(dentry);
-	struct vfsmount *lower_mnt = ecryptfs_dentry_to_lower_mnt(dentry);
-	struct dentry *dentry_save;
-	struct vfsmount *vfsmount_save;
-	unsigned int flags_save;
-	int rc;
-
-	if (nd) {
-		dentry_save = nd->path.dentry;
-		vfsmount_save = nd->path.mnt;
-		flags_save = nd->flags;
-		nd->path.dentry = lower_dentry;
-		nd->path.mnt = lower_mnt;
-		nd->flags &= ~LOOKUP_OPEN;
-	}
-	rc = vfs_create(lower_dir_inode, lower_dentry, mode, nd);
-	if (nd) {
-		nd->path.dentry = dentry_save;
-		nd->path.mnt = vfsmount_save;
-		nd->flags = flags_save;
-	}
-	return rc;
-}
-
-/**
  * ecryptfs_do_create
  * @directory_inode: inode of the new file's dentry's parent in ecryptfs
  * @ecryptfs_dentry: New file's dentry in ecryptfs
@@ -213,8 +173,7 @@ ecryptfs_do_create(struct inode *directory_inode,
 		rc = PTR_ERR(lower_dir_dentry);
 		goto out;
 	}
-	rc = ecryptfs_create_underlying_file(lower_dir_dentry->d_inode,
-					     ecryptfs_dentry, mode, nd);
+	rc = vfs_create(lower_dir_dentry->d_inode, lower_dentry, mode, NULL);
 	if (rc) {
 		printk(KERN_ERR "%s: Failure to create dentry in lower fs; "
 		       "rc = [%d]\n", __func__, rc);
