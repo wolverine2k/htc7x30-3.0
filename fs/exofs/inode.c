@@ -1138,7 +1138,7 @@ static void create_done(struct exofs_io_state *ios, void *p)
 /*
  * Set up a new inode and create an object for it on the OSD
  */
-struct inode *exofs_new_inode(struct inode *dir, int mode)
+struct inode *exofs_new_inode(struct inode *dir, umode_t mode)
 {
 	struct super_block *sb;
 	struct inode *inode;
