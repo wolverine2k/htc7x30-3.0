@@ -1582,7 +1582,7 @@ extern void unlock_super(struct super_block *);
  * VFS helper functions..
  */
 extern int vfs_create(struct inode *, struct dentry *, umode_t, struct nameidata *);
-extern int vfs_mkdir(struct inode *, struct dentry *, int);
+extern int vfs_mkdir(struct inode *, struct dentry *, umode_t);
 extern int vfs_mknod(struct inode *, struct dentry *, umode_t, dev_t);
 extern int vfs_symlink(struct inode *, struct dentry *, const char *);
 extern int vfs_link(struct dentry *, struct inode *, struct dentry *);
