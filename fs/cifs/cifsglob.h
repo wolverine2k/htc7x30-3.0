@@ -168,8 +168,8 @@ struct smb_vol {
 	uid_t cred_uid;
 	uid_t linux_uid;
 	gid_t linux_gid;
-	mode_t file_mode;
-	mode_t dir_mode;
+	umode_t file_mode;
+	umode_t dir_mode;
 	unsigned secFlg;
 	bool retry:1;
 	bool intr:1;

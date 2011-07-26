@@ -55,8 +55,8 @@ struct cifs_sb_info {
 	atomic_t active;
 	uid_t	mnt_uid;
 	gid_t	mnt_gid;
-	mode_t	mnt_file_mode;
-	mode_t	mnt_dir_mode;
+	umode_t	mnt_file_mode;
+	umode_t	mnt_dir_mode;
 	unsigned int mnt_cifs_flags;
 	char   *mountdata; /* options received at mount time or via DFS refs */
 	struct backing_dev_info bdi;
