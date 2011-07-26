@@ -1282,7 +1282,7 @@ int
 xfs_create(
 	xfs_inode_t		*dp,
 	struct xfs_name		*name,
-	mode_t			mode,
+	umode_t			mode,
 	xfs_dev_t		rdev,
 	xfs_inode_t		**ipp)
 {
@@ -1941,7 +1941,7 @@ xfs_symlink(
 	xfs_inode_t		*dp,
 	struct xfs_name		*link_name,
 	const char		*target_path,
-	mode_t			mode,
+	umode_t			mode,
 	xfs_inode_t		**ipp)
 {
 	xfs_mount_t		*mp = dp->i_mount;

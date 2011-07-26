@@ -968,7 +968,7 @@ int
 xfs_ialloc(
 	xfs_trans_t	*tp,
 	xfs_inode_t	*pip,
-	mode_t		mode,
+	umode_t		mode,
 	xfs_nlink_t	nlink,
 	xfs_dev_t	rdev,
 	prid_t		prid,
@@ -1009,7 +1009,7 @@ xfs_ialloc(
 		return error;
 	ASSERT(ip != NULL);
 
-	ip->i_d.di_mode = (__uint16_t)mode;
+	ip->i_d.di_mode = mode;
 	ip->i_d.di_onlink = 0;
 	ip->i_d.di_nlink = nlink;
 	ASSERT(ip->i_d.di_nlink == nlink);
