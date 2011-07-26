@@ -158,7 +158,7 @@ static int ecryptfs_interpose(struct dentry *lower_dentry,
  */
 static int
 ecryptfs_do_create(struct inode *directory_inode,
-		   struct dentry *ecryptfs_dentry, int mode,
+		   struct dentry *ecryptfs_dentry, umode_t mode,
 		   struct nameidata *nd)
 {
 	int rc;
