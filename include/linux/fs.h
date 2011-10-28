@@ -844,6 +844,18 @@ struct inode {
 #ifdef CONFIG_SECURITY
 	void			*i_security;
 #endif
+
+	/*
+	 * Filesystems may only read i_nlink directly.  They shall use the
+	 * following functions for modification:
+	 *
+	 *    (set|clear|inc|drop)_nlink
+	 *    inode_(inc|dec)_link_count
+	 */
+	union {
+		const unsigned int i_nlink;
+		unsigned int __i_nlink;
+	};
 	struct mutex		i_mutex;
 
 
