@@ -2276,7 +2276,6 @@ static struct mnt_namespace *create_mnt_ns(struct vfsmount *m)
 	}
 	return new_ns;
 }
-EXPORT_SYMBOL(create_mnt_ns);
 
 SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
 		char __user *, type, unsigned long, flags, void __user *, data)
@@ -2524,7 +2523,6 @@ void put_mnt_ns(struct mnt_namespace *ns)
 	release_mounts(&umount_list);
 	kfree(ns);
 }
-EXPORT_SYMBOL(put_mnt_ns);
 
 struct vfsmount *kern_mount_data(struct file_system_type *type, void *data)
 {
