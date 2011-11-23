@@ -824,7 +824,7 @@ nfsd4_setattr(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
 			return status;
 		}
 	}
-	err = mnt_want_write(cstate->current_fh.fh_export->ex_path.mnt);
+	err = fh_want_write(&cstate->current_fh);
 	if (err)
 		return nfserrno(err);
 	status = nfs_ok;
@@ -842,7 +842,7 @@ nfsd4_setattr(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
 	status = nfsd_setattr(rqstp, &cstate->current_fh, &setattr->sa_iattr,
 				0, (time_t)0);
 out:
-	mnt_drop_write(cstate->current_fh.fh_export->ex_path.mnt);
+	fh_drop_write(&cstate->current_fh);
 	return status;
 }
 
