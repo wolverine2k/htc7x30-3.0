@@ -467,7 +467,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd, mode_t, mode)
 	if (err)
 		goto out_putf;
 	mutex_lock(&inode->i_mutex);
-	err = security_path_chmod(dentry, file->f_vfsmnt, mode);
+	err = security_path_chmod(path, mode);
 	if (err)
 		goto out_unlock;
 	if (mode == (mode_t) -1)
