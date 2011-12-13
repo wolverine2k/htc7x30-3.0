@@ -954,7 +954,6 @@ expire_client(struct nfs4_client *clp)
 	spin_unlock(&recall_lock);
 	while (!list_empty(&reaplist)) {
 		dp = list_entry(reaplist.next, struct nfs4_delegation, dl_recall_lru);
-		list_del_init(&dp->dl_recall_lru);
 		unhash_delegation(dp);
 	}
 	while (!list_empty(&clp->cl_openowners)) {
@@ -2972,7 +2971,6 @@ nfs4_laundromat(void)
 	spin_unlock(&recall_lock);
 	list_for_each_safe(pos, next, &reaplist) {
 		dp = list_entry (pos, struct nfs4_delegation, dl_recall_lru);
-		list_del_init(&dp->dl_recall_lru);
 		unhash_delegation(dp);
 	}
 	test_val = nfsd4_lease;
@@ -4421,7 +4419,6 @@ __nfs4_state_shutdown(void)
 	spin_unlock(&recall_lock);
 	list_for_each_safe(pos, next, &reaplist) {
 		dp = list_entry (pos, struct nfs4_delegation, dl_recall_lru);
-		list_del_init(&dp->dl_recall_lru);
 		unhash_delegation(dp);
 	}
 
