@@ -304,13 +304,8 @@ mext_out:
 		}
 		if (err == 0)
 			err = err2;
-<<<<<<< HEAD
 		mnt_drop_write_file(filp);
-=======
-
-		mnt_drop_write(filp->f_path.mnt);
 group_add_out:
->>>>>>> 014a177... ext4: add missing ext4_resize_end on error paths
 		ext4_resize_end(sb);
 		return err;
 	}
