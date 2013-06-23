@@ -891,7 +891,7 @@ static int nfs_do_write(struct nfs_write_data *data,
 		const struct rpc_call_ops *call_ops,
 		int how)
 {
-	struct inode *inode = data->args.context->path.dentry->d_inode;
+	struct inode *inode = data->args.context->dentry->d_inode;
 
 	return nfs_initiate_write(data, NFS_CLIENT(inode), call_ops, how);
 }
