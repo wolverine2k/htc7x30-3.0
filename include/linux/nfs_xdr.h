@@ -981,11 +981,6 @@ struct nfs4_server_caps_res {
 	struct nfs4_sequence_res	seq_res;
 };
 
-struct nfs4_string {
-	unsigned int len;
-	char *data;
-};
-
 #define NFS4_PATHNAME_MAXCOMPONENTS 512
 struct nfs4_pathname {
 	unsigned int ncomponents;
