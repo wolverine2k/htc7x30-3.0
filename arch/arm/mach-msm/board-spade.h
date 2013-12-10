@@ -63,9 +63,8 @@ extern struct platform_device msm_device_mddi0;
 #define MSM_FB_SIZE		roundup((800 * ALIGN(480, 32) * 4 * 3), 4096) /* 4 bpp x 3 pages, Note: must be multiple of 4096 */
 
 #ifdef CONFIG_ION_MSM
-#define MSM_ION_AUDIO_SIZE  (MSM_PMEM_AUDIO_SIZE + PMEM_KERNEL_EBI0_SIZE)
 #define MSM_ION_SF_SIZE     MSM_PMEM_SF_SIZE
-#define MSM_ION_HEAP_NUM    3
+#define MSM_ION_HEAP_NUM    2
 #endif
 
 /* GPIO definition */
