@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -92,17 +92,17 @@ static u32 res_trk_disable_videocore(void)
 			goto bail_out;
 		}
 
-		if (clk_enable(resource_context.pclk)) {
+		if (clk_prepare_enable(resource_context.pclk)) {
 			VCDRES_MSG_ERROR("vidc pclk Enable failed\n");
 			goto bail_out;
 		}
 
-		if (clk_enable(resource_context.hclk)) {
+		if (clk_prepare_enable(resource_context.hclk)) {
 			VCDRES_MSG_ERROR("vidc hclk Enable failed\n");
 			goto disable_pclk;
 		}
 
-		if (clk_enable(resource_context.hclk_div2)) {
+		if (clk_prepare_enable(resource_context.hclk_div2)) {
 			VCDRES_MSG_ERROR("vidc hclk_div2 Enable failed\n");
 			goto disable_hclk;
 		}
@@ -120,13 +120,14 @@ static u32 res_trk_disable_videocore(void)
 	}
 	msleep(20);
 
-	clk_disable(resource_context.pclk);
-	clk_disable(resource_context.hclk);
-	clk_disable(resource_context.hclk_div2);
+	clk_disable_unprepare(resource_context.pclk);
+	clk_disable_unprepare(resource_context.hclk);
+	clk_disable_unprepare(resource_context.hclk_div2);
 
 	clk_put(resource_context.hclk_div2);
 	clk_put(resource_context.hclk);
 	clk_put(resource_context.pclk);
+
 /* HTC_START - Check regulator pointer */
 	if (!IS_ERR(resource_context.regulator)) {
 		rc = regulator_disable(resource_context.regulator);
@@ -137,7 +138,6 @@ static u32 res_trk_disable_videocore(void)
 		}
 /* HTC_END */
 	}
-
 	resource_context.hclk_div2 = NULL;
 	resource_context.hclk = NULL;
 	resource_context.pclk = NULL;
@@ -147,9 +147,9 @@ static u32 res_trk_disable_videocore(void)
 	return true;
 
 disable_hclk:
-	clk_disable(resource_context.hclk);
+	clk_disable_unprepare(resource_context.hclk);
 disable_pclk:
-	clk_disable(resource_context.pclk);
+	clk_disable_unprepare(resource_context.pclk);
 bail_out:
 	if (resource_context.pclk) {
 		clk_put(resource_context.pclk);
@@ -178,7 +178,7 @@ u32 res_trk_enable_clocks(void)
 
 		VCDRES_MSG_LOW("%s(): Enabling the clocks ...\n", __func__);
 
-		if (clk_enable(resource_context.pclk)) {
+		if (clk_prepare_enable(resource_context.pclk)) {
 			VCDRES_MSG_ERROR("vidc pclk Enable failed\n");
 
 			clk_put(resource_context.hclk);
@@ -187,7 +187,7 @@ u32 res_trk_enable_clocks(void)
 			return false;
 		}
 
-		if (clk_enable(resource_context.hclk)) {
+		if (clk_prepare_enable(resource_context.hclk)) {
 			VCDRES_MSG_ERROR("vidc  hclk Enable failed\n");
 			clk_put(resource_context.pclk);
 			clk_put(resource_context.hclk_div2);
@@ -195,7 +195,7 @@ u32 res_trk_enable_clocks(void)
 			return false;
 		}
 
-		if (clk_enable(resource_context.hclk_div2)) {
+		if (clk_prepare_enable(resource_context.hclk_div2)) {
 			VCDRES_MSG_ERROR("vidc  hclk Enable failed\n");
 			clk_put(resource_context.hclk);
 			clk_put(resource_context.pclk);
@@ -256,9 +256,9 @@ u32 res_trk_disable_clocks(void)
 	VCDRES_MSG_LOW("%s(): Disabling the clocks ...\n", __func__);
 
 	resource_context.clock_enabled = 0;
-	clk_disable(resource_context.hclk);
-	clk_disable(resource_context.hclk_div2);
-	clk_disable(resource_context.pclk);
+	clk_disable_unprepare(resource_context.hclk);
+	clk_disable_unprepare(resource_context.hclk_div2);
+	clk_disable_unprepare(resource_context.pclk);
 	mutex_unlock(&resource_context.lock);
 
 	return true;
@@ -316,17 +316,17 @@ static u32 res_trk_enable_videocore(void)
 			goto release_all_clks;
 		}
 
-		if (clk_enable(resource_context.pclk)) {
+		if (clk_prepare_enable(resource_context.pclk)) {
 			VCDRES_MSG_ERROR("vidc pclk Enable failed\n");
 			goto release_all_clks;
 		}
 
-		if (clk_enable(resource_context.hclk)) {
+		if (clk_prepare_enable(resource_context.hclk)) {
 			VCDRES_MSG_ERROR("vidc hclk Enable failed\n");
 			goto disable_pclk;
 		}
 
-		if (clk_enable(resource_context.hclk_div2)) {
+		if (clk_prepare_enable(resource_context.hclk_div2)) {
 			VCDRES_MSG_ERROR("vidc hclk_div2 Enable failed\n");
 			goto disable_hclk_pclk;
 		}
@@ -338,9 +338,9 @@ static u32 res_trk_enable_videocore(void)
 		}
 		msleep(20);
 
-		clk_disable(resource_context.pclk);
-		clk_disable(resource_context.hclk);
-		clk_disable(resource_context.hclk_div2);
+		clk_disable_unprepare(resource_context.pclk);
+		clk_disable_unprepare(resource_context.hclk);
+		clk_disable_unprepare(resource_context.hclk_div2);
 
 	}
 	resource_context.rail_enabled = 1;
@@ -348,11 +348,11 @@ static u32 res_trk_enable_videocore(void)
 	return true;
 
 disable_and_release_all_clks:
-	clk_disable(resource_context.hclk_div2);
+	clk_disable_unprepare(resource_context.hclk_div2);
 disable_hclk_pclk:
-	clk_disable(resource_context.hclk);
+	clk_disable_unprepare(resource_context.hclk);
 disable_pclk:
-	clk_disable(resource_context.pclk);
+	clk_disable_unprepare(resource_context.pclk);
 release_all_clks:
 	clk_put(resource_context.hclk_div2);
 	resource_context.hclk_div2 = NULL;
@@ -417,7 +417,7 @@ u32 res_trk_power_up(void)
 		VCDRES_MSG_ERROR("Request AXI bus QOS fails.");
 		return false;
 	}
-	clk_enable(ebi1_clk);
+	clk_prepare_enable(ebi1_clk);
 }
 #endif
 
@@ -432,7 +432,7 @@ u32 res_trk_power_down(void)
 #ifdef AXI_CLK_SCALING
 	VCDRES_MSG_MED("\n res_trk_power_down()::"
 		"Calling AXI remove requirement\n");
-	clk_disable(ebi1_clk);
+	clk_disable_unprepare(ebi1_clk);
 	clk_put(ebi1_clk);
 #endif
 	VCDRES_MSG_MED("\n res_trk_power_down():: Calling "
@@ -686,10 +686,6 @@ static struct ion_client *res_trk_create_ion_client(void){
 	struct ion_client *video_client;
 	VCDRES_MSG_LOW("%s", __func__);
 	video_client = msm_ion_client_create(-1, "video_client");
-	if (IS_ERR_OR_NULL(video_client)) {
-		VCDRES_MSG_ERROR("%s: Unable to create ION client\n", __func__);
-		video_client = NULL;
-	}
 	return video_client;
 }
 
@@ -725,6 +721,9 @@ void res_trk_init(struct device *device, u32 irq)
 			}
 			VCDRES_MSG_LOW("%s(): ion_client = 0x%x", __func__,
 				(u32)resource_context.res_ion_client);
+		} else {
+			VCDRES_MSG_ERROR("%s(): ION not disabled\n",
+					__func__);
 		}
 	} else {
 		resource_context.memtype = -1;
@@ -812,3 +811,8 @@ u32 res_trk_is_cp_enabled(void)
 	else
 		return 0;
 }
+u32 res_trk_estimate_perf_level(u32 pn_perf_lvl)
+{
+	return 0;
+}
+

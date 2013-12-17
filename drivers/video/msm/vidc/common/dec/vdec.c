@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2013, Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -279,6 +279,12 @@ static void vid_dec_output_frame_done(struct video_client_ctx *client_ctx,
 		    vcd_frame_data->data_len;
 		vdec_msg->vdec_msg_info.msgdata.output_frame.flags =
 		    vcd_frame_data->flags;
+		/* metadata offset in output buffer for non-secure mode */
+		vdec_msg->vdec_msg_info.msgdata.output_frame.metadata_len =
+			(size_t)vcd_frame_data->metadata_len;
+		/* metadata offset in output buffer for non-secure mode */
+		vdec_msg->vdec_msg_info.msgdata.output_frame.metadata_offset =
+			(size_t)vcd_frame_data->metadata_offset;
 		/* Timestamp pass-through from input frame */
 		vdec_msg->vdec_msg_info.msgdata.output_frame.time_stamp =
 		    vcd_frame_data->time_stamp;
@@ -334,9 +340,9 @@ static void vid_dec_output_frame_done(struct video_client_ctx *client_ctx,
 		output_frame->aspect_ratio_info.aspect_ratio =
 			vcd_frame_data->aspect_ratio_info.aspect_ratio;
 		output_frame->aspect_ratio_info.par_width =
-			vcd_frame_data->aspect_ratio_info.extended_par_width;
+			vcd_frame_data->aspect_ratio_info.par_width;
 		output_frame->aspect_ratio_info.par_height =
-			vcd_frame_data->aspect_ratio_info.extended_par_height;
+			vcd_frame_data->aspect_ratio_info.par_height;
 		vdec_msg->vdec_msg_info.msgdatasize =
 		    sizeof(struct vdec_output_frameinfo);
 	} else {
@@ -352,8 +358,9 @@ static void vid_dec_output_frame_done(struct video_client_ctx *client_ctx,
 				vcd_frame_data->alloc_len);
 			msm_ion_do_cache_op(client_ctx->user_ion_client,
 					buff_handle,
-					(unsigned long *) kernel_vaddr,
-					(unsigned long)vcd_frame_data->data_len,
+					(unsigned long *) NULL,
+					(unsigned long)vcd_frame_data->\
+					alloc_len,
 					ION_IOC_INV_CACHES);
 		}
 	}
@@ -638,6 +645,26 @@ static u32 vid_dec_set_frame_resolution(struct video_client_ctx *client_ctx,
 		return true;
 }
 
+static u32 vid_dec_set_turbo_clk(struct video_client_ctx *client_ctx)
+{
+	struct vcd_property_hdr vcd_property_hdr;
+	u32 vcd_status = VCD_ERR_FAIL;
+	u32 dummy = 0;
+
+	if (!client_ctx)
+		return false;
+	vcd_property_hdr.prop_id = VCD_I_SET_TURBO_CLK;
+	vcd_property_hdr.sz = sizeof(struct vcd_property_frame_size);
+
+	vcd_status = vcd_set_property(client_ctx->vcd_handle,
+				      &vcd_property_hdr, &dummy);
+
+	if (vcd_status)
+		return false;
+	else
+		return true;
+}
+
 static u32 vid_dec_get_frame_resolution(struct video_client_ctx *client_ctx,
 					struct vdec_picsize *video_resoultion)
 {
@@ -871,7 +898,7 @@ static u32 vid_dec_set_h264_mv_buffers(struct video_client_ctx *client_ctx,
 		client_ctx->h264_mv_ion_handle = ion_import_dma_buf(
 					client_ctx->user_ion_client,
 					vcd_h264_mv_buffer->pmem_fd);
-		if (!client_ctx->h264_mv_ion_handle) {
+		if (IS_ERR_OR_NULL(client_ctx->h264_mv_ion_handle)) {
 			ERR("%s(): get_ION_handle failed\n", __func__);
 			goto import_ion_error;
 		}
@@ -912,9 +939,10 @@ static u32 vid_dec_set_h264_mv_buffers(struct video_client_ctx *client_ctx,
 					SZ_4K, 0, (unsigned long *)&iova,
 					(unsigned long *)&buffer_size,
 					0, 0);
-			if (rc) {
-				ERR("%s():get_ION_kernel physical addr fail\n",
-						 __func__);
+			if (rc || !iova) {
+				ERR(
+				"%s():get_ION_kernel physical addr fail, rc = %d iova = 0x%lx\n",
+					__func__, rc, iova);
 				goto ion_map_error;
 			}
 			vcd_h264_mv_buffer->physical_addr = (u8 *) iova;
@@ -934,12 +962,16 @@ static u32 vid_dec_set_h264_mv_buffers(struct video_client_ctx *client_ctx,
 	else
 		return true;
 ion_map_error:
-	if (vcd_h264_mv_buffer->kernel_virtual_addr)
+	if (vcd_h264_mv_buffer->kernel_virtual_addr) {
 		ion_unmap_kernel(client_ctx->user_ion_client,
 				client_ctx->h264_mv_ion_handle);
-	if (client_ctx->h264_mv_ion_handle)
+		vcd_h264_mv_buffer->kernel_virtual_addr = NULL;
+	}
+	if (!IS_ERR_OR_NULL(client_ctx->h264_mv_ion_handle)) {
 		ion_free(client_ctx->user_ion_client,
 			client_ctx->h264_mv_ion_handle);
+		 client_ctx->h264_mv_ion_handle = NULL;
+	}
 import_ion_error:
 	return false;
 }
@@ -1008,7 +1040,7 @@ static u32 vid_dec_free_h264_mv_buffers(struct video_client_ctx *client_ctx)
 	vcd_status = vcd_set_property(client_ctx->vcd_handle,
 				      &vcd_property_hdr, &h264_mv_buffer_size);
 
-	if (client_ctx->h264_mv_ion_handle != NULL) {
+	if (!IS_ERR_OR_NULL(client_ctx->h264_mv_ion_handle)) {
 		ion_unmap_kernel(client_ctx->user_ion_client,
 					client_ctx->h264_mv_ion_handle);
 		if (!res_trk_check_for_sec_session() &&
@@ -1020,6 +1052,7 @@ static u32 vid_dec_free_h264_mv_buffers(struct video_client_ctx *client_ctx)
 		}
 		ion_free(client_ctx->user_ion_client,
 					client_ctx->h264_mv_ion_handle);
+		 client_ctx->h264_mv_ion_handle = NULL;
 	}
 
 	if (vcd_status)
@@ -1271,7 +1304,7 @@ static u32 vid_dec_decode_frame(struct video_client_ctx *client_ctx,
 			if (ion_flag == ION_FLAG_CACHED && buff_handle) {
 				msm_ion_do_cache_op(client_ctx->user_ion_client,
 				buff_handle,
-				(unsigned long *)kernel_vaddr,
+				(unsigned long *) NULL,
 				(unsigned long) vcd_input_buffer.data_len,
 				ION_IOC_CLEAN_CACHES);
 			}
@@ -1629,6 +1662,7 @@ static long vid_dec_ioctl(struct file *file,
 	}
 	case VDEC_IOCTL_CMD_PAUSE:
 	{
+		DBG("VDEC_IOCTL_CMD_PAUSE\n");
 		result = vid_dec_pause_resume(client_ctx, true);
 		if (!result)
 			return -EIO;
@@ -1678,6 +1712,12 @@ static long vid_dec_ioctl(struct file *file,
 			desc_buf = NULL;
 			return -EIO;
 		}
+		break;
+	}
+	case VDEC_IOCTL_SET_PERF_CLK:
+	{
+		DBG("VDEC_IOCTL_SET_PERF_CLK\n");
+		vid_dec_set_turbo_clk(client_ctx);
 		break;
 	}
 	case VDEC_IOCTL_FILL_OUTPUT_BUFFER:
@@ -1989,6 +2029,7 @@ static long vid_dec_ioctl(struct file *file,
 	}
 	case VDEC_IOCTL_SET_IDR_ONLY_DECODING:
 	{
+		DBG("VDEC_IOCTL_SET_IDR_ONLY_DECODING\n");
 		result = vid_dec_set_idr_only_decoding(client_ctx);
 		if (!result)
 			return -EIO;
@@ -1996,6 +2037,7 @@ static long vid_dec_ioctl(struct file *file,
 	}
 	case VDEC_IOCTL_SET_CONT_ON_RECONFIG:
 	{
+		DBG("VDEC_IOCTL_SET_CONT_ON_RECONFIG\n");
 		result = vid_dec_set_cont_on_reconfig(client_ctx);
 		if (!result)
 			return -EIO;
@@ -2044,10 +2086,6 @@ static u32 vid_dec_close_client(struct video_client_ctx *client_ctx)
 	mutex_unlock(&client_ctx->msg_queue_lock);
 	vcd_status = vcd_close(client_ctx->vcd_handle);
 
-	if (vcd_status) {
-		mutex_unlock(&vid_dec_device_p->lock);
-		return false;
-	}
 	client_ctx->user_ion_client = NULL;
 	memset((void *)client_ctx, 0, sizeof(struct video_client_ctx));
 	vid_dec_device_p->num_clients--;
@@ -2084,7 +2122,7 @@ int vid_dec_open_client(struct video_client_ctx **vid_clnt_ctx, int flags)
 	}
 
 	client_index = vid_dec_get_empty_client_index();
-	if (client_index < 0) {
+	if (client_index == -1) {
 		ERR("%s() : No free clients client_index == -1\n", __func__);
 		rc = -ENOMEM;
 		goto client_failure;
@@ -2130,7 +2168,7 @@ client_failure:
 
 static int vid_dec_open_secure(struct inode *inode, struct file *file)
 {
-	int rc = 0;
+	int rc = 0, close_client = 0;
 	struct video_client_ctx *client_ctx;
 	mutex_lock(&vid_dec_device_p->lock);
 	rc = vid_dec_open_client(&client_ctx, VCD_CP_SESSION);
@@ -2144,6 +2182,9 @@ static int vid_dec_open_secure(struct inode *inode, struct file *file)
 	file->private_data = client_ctx;
 	if (res_trk_open_secure_session()) {
 		ERR("Secure session operation failure\n");
+		close_client = 1;
+		client_ctx->stop_called = 1;
+		client_ctx->stop_sync_cb = 1;
 		rc = -EACCES;
 		goto error;
 	}
@@ -2151,6 +2192,8 @@ static int vid_dec_open_secure(struct inode *inode, struct file *file)
 	return 0;
 error:
 	mutex_unlock(&vid_dec_device_p->lock);
+	if (close_client)
+		vid_dec_close_client(client_ctx);
 	return rc;
 }
 
