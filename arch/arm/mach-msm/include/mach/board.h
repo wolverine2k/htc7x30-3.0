@@ -525,6 +525,7 @@ struct msm_vidc_platform_data {
 #endif
 	int disable_turbo;
 	int cont_mode_dpb_count;
+	int memtype_pmem;
 };
 
 #if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
