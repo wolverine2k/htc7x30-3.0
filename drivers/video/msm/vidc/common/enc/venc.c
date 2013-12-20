@@ -265,7 +265,7 @@ static void vid_enc_output_frame_done(struct video_client_ctx *client_ctx,
 		ion_flag = vidc_get_fd_info(client_ctx, BUFFER_TYPE_OUTPUT,
 					pmem_fd, kernel_vaddr, buffer_index,
 					&buff_handle);
-		if (ion_flag == CACHED) {
+		if (ion_flag == ION_FLAG_CACHED && buff_handle) {
 			msm_ion_do_cache_op(client_ctx->user_ion_client,
 				buff_handle,
 				(unsigned long *) kernel_vaddr,
@@ -526,6 +526,8 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 
 	INFO("\n msm_vidc_enc: Inside %s()", __func__);
 
+	vcd_set_is_encoding(true);
+
 	mutex_lock(&vid_enc_device_p->lock);
 
 	stop_cmd = 0;
@@ -598,6 +600,7 @@ static int vid_enc_release(struct inode *inode, struct file *file)
 #ifndef USE_RES_TRACKER
 	vidc_disable_clk();
 #endif
+	vcd_set_is_encoding(false);
 	INFO("\n msm_vidc_enc: Return from %s()", __func__);
 	return 0;
 }
