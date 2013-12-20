@@ -19,7 +19,7 @@
 #include <linux/bootmem.h>
 #include <linux/io.h>
 #ifdef CONFIG_ION_MSM
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #endif
 #ifdef CONFIG_SPI_QSD
 #include <linux/spi/spi.h>
@@ -3265,15 +3265,23 @@ static struct ion_co_heap_pdata co_ion_pdata = {
  * These heaps are listed in the order they will be allocated.
  * Don't swap the order unless you know what you are doing!
  */
-static struct ion_platform_data ion_pdata = {
-	.nr = MSM_ION_HEAP_NUM,
-	.heaps = {
+
+struct ion_platform_heap msm7x30_heaps[] = {
 		{
 			.id		= ION_SYSTEM_HEAP_ID,
 			.type	= ION_HEAP_TYPE_SYSTEM,
 			.name	= ION_VMALLOC_HEAP_NAME,
 		},
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+		/* CAMERA */
+		{
+			.id		= ION_CAMERA_HEAP_ID,
+			.type	= ION_HEAP_TYPE_CARVEOUT,
+			.name	= ION_CAMERA_HEAP_NAME,
+			.memory_type = ION_EBI_TYPE,
+			.has_outer_cache = 1,
+			.extra_data = (void *)&co_ion_pdata,
+		},
 		/* PMEM_MDP =SF */
 		{
 			.id		= ION_SF_HEAP_ID,
@@ -3284,7 +3292,12 @@ static struct ion_platform_data ion_pdata = {
 			.extra_data = (void *)&co_ion_pdata,
 		},
 #endif
-		}
+		
+};
+
+static struct ion_platform_data ion_pdata = {
+	.nr = MSM_ION_HEAP_NUM,
+	.heaps = msm7x30_heaps,
 };
 
 static struct platform_device ion_dev = {
@@ -3348,13 +3361,15 @@ static void __init reserve_pmem_memory(void)
 static void __init size_ion_devices(void)
 {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	ion_pdata.heaps[1].size = MSM_ION_SF_SIZE;
+	ion_pdata.heaps[1].size = MSM_ION_CAMERA_SIZE;
+	ion_pdata.heaps[2].size = MSM_ION_SF_SIZE;
 #endif
 }
 
 static void __init reserve_ion_memory(void)
 {
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
+	msm7x30_reserve_table[MEMTYPE_EBI0].size += MSM_ION_CAMERA_SIZE;
 	msm7x30_reserve_table[MEMTYPE_EBI0].size += MSM_ION_SF_SIZE;
 #endif
 }

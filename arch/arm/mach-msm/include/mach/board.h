@@ -390,8 +390,12 @@ enum msm_mdp_hw_revision {
 struct msm_panel_common_pdata {
 	uintptr_t hw_revision_addr;
 	int gpio;
+	bool bl_lock;
+	spinlock_t bl_spinlock;
 	int (*backlight_level)(int level, int max, int min);
 	int (*pmic_backlight)(int level);
+	int (*rotate_panel)(void);
+	int (*backlight) (int level, int mode);
 	int (*panel_num)(void);
 	void (*panel_config_gpio)(int);
 	int (*vga_switch)(int select_vga);
@@ -405,6 +409,9 @@ struct msm_panel_common_pdata {
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
+	u32 splash_screen_addr;
+	u32 splash_screen_size;
+	char mdp_iommu_split_domain;
 };
 
 struct lcdc_platform_data {
@@ -468,8 +475,8 @@ struct mipi_dsi_panel_platform_data {
 struct msm_fb_platform_data {
 	int (*detect_client)(const char *name);
 	int mddi_prescan;
+	unsigned char ext_resolution;
 	int (*allow_set_offset)(void);
-	bool     is_3d_panel;
 	char prim_panel_name[PANEL_NAME_MAX_LEN];
 	char ext_panel_name[PANEL_NAME_MAX_LEN];
 };
@@ -518,6 +525,7 @@ struct msm_vidc_platform_data {
 #endif
 	int disable_turbo;
 	int cont_mode_dpb_count;
+	int memtype_pmem;
 };
 
 #if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
