@@ -18,6 +18,9 @@
 #include <linux/delay.h>
 #include <linux/bootmem.h>
 #include <linux/io.h>
+#ifdef CONFIG_ION_MSM
+#include <linux/msm_ion.h>
+#endif
 #ifdef CONFIG_SPI_QSD
 #include <linux/spi/spi.h>
 #endif
@@ -137,6 +140,10 @@
 		(((dir) & 0x1) << 14)           | \
 		(((pull) & 0x3) << 15)          | \
 		(((drvstr) & 0xF) << 17))
+
+#ifdef CONFIG_ION_MSM
+static struct platform_device ion_dev;
+#endif
 
 struct pm8xxx_gpio_init_info {
 	unsigned			gpio;
@@ -1354,10 +1361,10 @@ static int marimba_tsadc_exit(void)
 
 
 static struct msm_ts_platform_data msm_ts_data = {
-	.min_x          = 0,
-	.max_x          = 4096,
-	.min_y          = 0,
-	.max_y          = 4096,
+	.min_x          = 284,
+	.max_x          = 3801,
+	.min_y          = 155,
+	.max_y          = 3929,
 	.min_press      = 0,
 	.max_press      = 255,
 	.inv_x          = 4096,
@@ -1977,9 +1984,9 @@ static struct android_pmem_platform_data android_pmem_audio_pdata = {
 };
 
 static struct platform_device android_pmem_audio_device = {
-       .name = "android_pmem",
-       .id = 4,
-       .dev = { .platform_data = &android_pmem_audio_pdata },
+	.name = "android_pmem",
+	.id = 4,
+	.dev = { .platform_data = &android_pmem_audio_pdata },
 };
 #endif
 
@@ -2037,6 +2044,36 @@ struct platform_device vision_bcm_bt_lpm_device = {
 	.dev = {
 		.platform_data = &bcm_bt_lpm_pdata,
 	},
+};
+#endif
+
+#ifdef CONFIG_BT_MSM_SLEEP
+static struct resource bluesleep_resources[] = {
+	{
+		.name	= "gpio_host_wake",
+        .start  = VISION_GPIO_BT_HOST_WAKE,
+        .end    = VISION_GPIO_BT_HOST_WAKE,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "gpio_ext_wake",
+        .start  = VISION_GPIO_BT_CHIP_WAKE,
+        .end    = VISION_GPIO_BT_CHIP_WAKE,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "host_wake",
+        .start  = MSM_GPIO_TO_INT(VISION_GPIO_BT_HOST_WAKE),
+        .end    = MSM_GPIO_TO_INT(VISION_GPIO_BT_HOST_WAKE),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device msm_bluesleep_device = {
+	.name   = "bluesleep_bcm",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(bluesleep_resources),
+	.resource	= bluesleep_resources,
 };
 #endif
 #endif
@@ -3024,16 +3061,6 @@ static int __init board_serialno_setup(char *serialno)
 }
 __setup("androidboot.serialno=", board_serialno_setup);
 
-#ifdef CONFIG_MDP4_HW_VSYNC
-static void vision_te_gpio_config(void)
-{
-	uint32_t te_gpio_table[] = {
-	PCOM_GPIO_CFG(30, 1, GPIO_INPUT, GPIO_PULL_DOWN, GPIO_2MA),
-	};
-	config_gpio_table(te_gpio_table, ARRAY_SIZE(te_gpio_table));
-}
-#endif
-
 static struct platform_device *devices[] __initdata = {
         &ram_console_device,
 #if defined(CONFIG_SERIAL_MSM) || defined(CONFIG_MSM_SERIAL_DEBUGGER)
@@ -3133,6 +3160,7 @@ static struct platform_device *devices[] __initdata = {
 #ifdef CONFIG_SERIAL_MSM_HS
         &msm_device_uart_dm1,
 #endif
+
 #ifdef CONFIG_BT
         &vision_rfkill,
 #endif
@@ -3283,10 +3311,7 @@ static void __init vision_init(void)
 
 	i2c_register_board_info(0, i2c_devices,	ARRAY_SIZE(i2c_devices));
 	vision_init_keypad();
-#ifdef CONFIG_MDP4_HW_VSYNC
-	vision_te_gpio_config();
-#endif
-        vision_init_panel();
+	vision_init_panel();
 	vision_audio_init();
 	vision_wifi_init();
 	msm_init_pmic_vibrator(3000);
@@ -3300,7 +3325,7 @@ static int __init pmem_sf_size_setup(char *p)
 }
 early_param("pmem_sf_size", pmem_sf_size_setup);
 
-static unsigned fb_size = MSM_FB_SIZE;
+static unsigned fb_size;
 static int __init fb_size_setup(char *p)
 {
 	fb_size = memparse(p, NULL);
@@ -3326,6 +3351,59 @@ static int __init pmem_audio_size_setup(char *p)
 early_param("pmem_audio_size", pmem_audio_size_setup);
 #endif
 
+#ifdef CONFIG_ION_MSM
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+static struct ion_co_heap_pdata co_ion_pdata = {
+	.adjacent_mem_id = INVALID_HEAP_ID,
+	.align = PAGE_SIZE,
+};
+#endif
+
+/**
+ * These heaps are listed in the order they will be allocated.
+ * Don't swap the order unless you know what you are doing!
+ */
+
+struct ion_platform_heap msm7x30_heaps[] = {
+		{
+			.id	= ION_SYSTEM_HEAP_ID,
+			.type	= ION_HEAP_TYPE_SYSTEM,
+			.name	= ION_VMALLOC_HEAP_NAME,
+		},
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+    /* CAMERA */
+    {
+      .id    = ION_CAMERA_HEAP_ID,
+      .type  = ION_HEAP_TYPE_CARVEOUT,
+      .name  = ION_CAMERA_HEAP_NAME,
+      .memory_type = ION_EBI_TYPE,
+      .has_outer_cache = 1,
+      .extra_data = (void *)&co_ion_pdata,
+    },
+		/* PMEM_MDP = SF */
+		{
+			.id	= ION_SF_HEAP_ID,
+			.type	= ION_HEAP_TYPE_CARVEOUT,
+			.name	= ION_SF_HEAP_NAME,
+			.memory_type = ION_EBI_TYPE,
+			.has_outer_cache = 1,
+			.extra_data = (void *)&co_ion_pdata,
+		},
+#endif
+};
+
+static struct ion_platform_data ion_pdata = {
+	.nr = MSM_ION_HEAP_NUM,
+	.heaps = msm7x30_heaps,
+};
+
+static struct platform_device ion_dev = {
+	.name = "ion-msm",
+	.id = 1,
+	.dev = { .platform_data = &ion_pdata },
+};
+#endif
+
 static struct memtype_reserve msm7x30_reserve_table[] __initdata = {
 	[MEMTYPE_SMI] = {
 	},
@@ -3337,44 +3415,41 @@ static struct memtype_reserve msm7x30_reserve_table[] __initdata = {
 	},
 };
 
-static void __init size_pmem_device(struct android_pmem_platform_data *pdata, unsigned long start, unsigned long size)
+unsigned long msm_ion_camera_size;
+static void fix_sizes(void)
 {
-	pdata->start = start;
-	pdata->size = size;
-	if (pdata->start)
-		pr_info("%s: pmem %s requests %lu bytes at 0x%p (0x%lx physical).\n",
-			__func__, pdata->name, size, __va(start), start);
-	else
-		pr_info("%s: pmem %s requests %lu bytes dynamically.\n",
-			__func__, pdata->name, size);
+#ifdef CONFIG_ION_MSM
+	msm_ion_camera_size = pmem_adsp_size;
+#endif
 }
 
 static void __init size_pmem_devices(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
-#ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
-//	android_pmem_audio_pdata.size = pmem_audio_size;
+#ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	android_pmem_pdata.size = pmem_sf_size;
 #endif
 #endif
 }
 
+#ifdef CONFIG_ANDROID_PMEM
 static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 {
-	if (p->start == 0) {
+	if (p->size > 0) {
 		pr_info("%s: reserve %lu bytes from memory %d for %s.\n", __func__, p->size, p->memory_type, p->name);
 		msm7x30_reserve_table[p->memory_type].size += p->size;
 	}
 }
+#endif
 
 static void __init reserve_pmem_memory(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
 	reserve_memory_for(&android_pmem_adsp_pdata);
-//	reserve_memory_for(&android_pmem_audio_pdata);
-	reserve_memory_for(&android_pmem_pdata);
 	msm7x30_reserve_table[MEMTYPE_EBI0].size += PMEM_KERNEL_EBI0_SIZE;
+#ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
+	reserve_memory_for(&android_pmem_pdata);
 #endif
 #endif
 }
@@ -3382,25 +3457,26 @@ static void __init reserve_pmem_memory(void)
 static void __init size_ion_devices(void)
 {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	ion_pdata.heaps[1].size = msm_ion_camera_size;
-	ion_pdata.heaps[2].size = MSM_ION_AUDIO_SIZE;
-	ion_pdata.heaps[3].size = MSM_ION_SF_SIZE;
+  ion_pdata.heaps[1].size = MSM_ION_CAMERA_SIZE;
+  ion_pdata.heaps[2].size = MSM_ION_SF_SIZE;
 #endif
 }
 
 static void __init reserve_ion_memory(void)
 {
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
-	msm7x30_reserve_table[MEMTYPE_EBI0].size += msm_ion_camera_size;
-	msm7x30_reserve_table[MEMTYPE_EBI0].size += MSM_ION_AUDIO_SIZE;
+  msm7x30_reserve_table[MEMTYPE_EBI0].size += MSM_ION_CAMERA_SIZE;
 	msm7x30_reserve_table[MEMTYPE_EBI0].size += MSM_ION_SF_SIZE;
 #endif
 }
 
 static void __init msm7x30_calculate_reserve_sizes(void)
 {
+	fix_sizes();
 	size_pmem_devices();
 	reserve_pmem_memory();
+	size_ion_devices();
+	reserve_ion_memory();
 }
 
 static int msm7x30_paddr_to_memtype(unsigned int paddr)
@@ -3429,7 +3505,7 @@ static void __init vision_allocate_memory_regions(void)
 	void *addr;
 	unsigned long size;
 
-	size = fb_size ? : MSM_FB_SIZE;
+	size = MSM_FB_SIZE;
 	addr = alloc_bootmem_align(size, 0x1000);
 	msm_fb_resources[0].start = __pa(addr);
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
