@@ -6,7 +6,7 @@ HOSTNAME=$(hostname)
 if [ $HOSTNAME = "ubuntu" ]; then
     ANYKERNEL="/home/niko/AnyKernel"
     OUTPUT="/media/glooms"
-elif [ $HOSTNAME = "p000001.pubip.peer1.net" ]; then
+elif [ $HOSTNAME = "node2-c6100.codefi.re" ]; then
     ANYKERNEL="/home/mustaavalkosta/storage/AnyKernel"
     OUTPUT="/home/mustaavalkosta/downloads/tests"
 else
