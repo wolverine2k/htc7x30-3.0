@@ -835,7 +835,7 @@ static ssize_t atmel_dt2w_switch_store(struct device *dev,
 	}
 	if (value == 0 || value == 1) {
 		dt2w_switch = (bool)value;
-		printk(KERN_INFO "[TP] [sweep2wake]: dt2w_switch=%d\n", s2w_allow_stroke);
+		printk(KERN_INFO "[TP] [sweep2wake]: dt2w_switch=%d\n", dt2w_switch);
 	} else {
 		printk(KERN_INFO "[TP] [sweep2wake]: set dt2w_switch failed - valid values are 0 or 1 - %s\n", buf);
 	}
