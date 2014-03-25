@@ -32,7 +32,7 @@ extern struct platform_device msm_device_mddi0;
 #define MSM_LINUX_BASE1		0x04000000
 #define MSM_LINUX_SIZE1		0x0C000000
 #define MSM_LINUX_BASE2		0x20000000
-#define MSM_LINUX_SIZE2		0x10000000
+#define MSM_LINUX_SIZE2		0x0C300000
 #define MSM_MEM_256MB_OFFSET	0x10000000
 
 //#define MSM_GPU_MEM_BASE	0x00100000 /* unused */
@@ -46,11 +46,14 @@ extern struct platform_device msm_device_mddi0;
  * res V4L2 video overlay - i.e. 1280x720x1.5x2
 */
 #define MSM_V4L2_VIDEO_OVERLAY_BUF_SIZE 2764800
-//#define MSM_PMEM_ADSP_BASE  	0x2B900000 /* unused */
+
+#define MSM_PMEM_ADSP_BASE	0x2C300000
 #define MSM_PMEM_ADSP_SIZE	0x01E00000 /* for 8M(4:3) + gpu effect */
+#define MSM_PMEM_SF_BASE	0x2E100000
+#define MSM_PMEM_SF_SIZE	0x01F00000
 //#define PMEM_KERNEL_EBI0_BASE   0x2D600000 /* unused */
 #define PMEM_KERNEL_EBI0_SIZE   0x00500000
-#define MSM_PMEM_SF_SIZE	0x01F00000
+
 #define MSM_PMEM_AUDIO_SIZE	0x00000000
 
 //#define MSM_PMEM_CAMERA_BASE	0x2DD00000 /* unused */
@@ -63,9 +66,10 @@ extern struct platform_device msm_device_mddi0;
 #define MSM_FB_SIZE		roundup((800 * ALIGN(480, 32) * 4 * 3), 4096) /* 4 bpp x 3 pages, Note: must be multiple of 4096 */
 
 #ifdef CONFIG_ION_MSM
-#define MSM_ION_CAMERA_SIZE     0x01DA0000
-#define MSM_ION_SF_SIZE     MSM_PMEM_SF_SIZE
-#define MSM_ION_HEAP_NUM    3
+#define MSM_ION_CAMERA_SIZE	MSM_PMEM_ADSP_SIZE
+#define MSM_ION_SF_BASE		MSM_PMEM_SF_BASE
+#define MSM_ION_SF_SIZE		MSM_PMEM_SF_SIZE
+#define MSM_ION_HEAP_NUM	3
 #endif
 
 /* GPIO definition */
